@@ -1,0 +1,275 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 210 100% 56%; /* Azure */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 100% 56%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+
+    /* Дополнительный отступ ленты от нижнего навбара:
+       на мобиле держим крупный, на десктопе уменьшаем */
+    --profile-feed-bottom-extra: 86px;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 100% 70%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE и Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.6); /* gray-400 */
+    border-radius: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background-color: #f3f4f6; /* gray-100 */
+  }
+
+  body.profile-settings-open .profile-menu-modal {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    /* На десктопе убираем лишнюю «дыру» под лентой профиля */
+    --profile-feed-bottom-extra: 24px;
+  }
+}
+
+
+@media (max-width: 768px) {
+  /* Центрирование отключаем */
+  .rdp-root {
+    justify-content: stretch !important;
+  }
+
+  /* Календарь — на всю ширину */
+  .rdp-week {
+    margin-top: 0 !important;
+  }
+  .rdp,
+  .rdp-months,
+  .rdp-month,
+  .rdp-month_grid,
+  .rdp-weeks {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .rdp-table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+  }
+
+  .rdp-cell {
+    width: calc(100% / 7) !important;
+    padding: 0 !important;
+  }
+
+  .rdp-day {
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+  }
+
+  .rdp-cell .rdp-day_today {
+    width: 28px !important;
+    height: 28px !important;
+    border: 1px solid #d1d5db !important; /* gray-300 */
+    border-radius: 6px !important;
+    margin: auto !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 !important;
+  }
+}
+
+/* Google Places Autocomplete */
+.pac-container {
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
+}
+
+/* Прячем подсказки Google Places, пока введено < 3 символов (кроме случая, когда открыт модал создания кэмпа) */
+.pac-hidden:not(.camp-modal-open) .pac-container {
+  display: none !important;
+}
+
+/* В модалке создания кэмпа отдельно управляем показом подсказок через класс camp-modal-pac-hidden */
+.camp-modal-open.camp-modal-pac-hidden .pac-container {
+  display: none !important;
+}
+
+/* Предотвращаем перекрытие родителями */
+.pac-item {
+  pointer-events: auto !important;
+}
+
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+html {
+  touch-action: manipulation;
+  -ms-touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.hide-header header.app-global-header {
+  display: none !important;
+}
+
+/* В оверлее поиска показываем header даже если базовая страница его скрыла через hide-header */
+.hide-header .search-overlay-root header.app-global-header {
+  display: block !important;
+}
+
+.no-anchor {
+  /* выключаем scroll anchoring для этого узла и "прокладки" */
+  overflow-anchor: none;
+}
+
+/* можно в globals.css */
+
+/* Google Maps infowindow — оставляем только превью без белой подложки */
+.gm-style .gm-style-iw-c,
+.gm-style .gm-style-iw {
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 20px !important;
+  overflow: visible !important;
+}
+
+.gm-style .gm-style-iw-d {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+.gm-style .gm-ui-hover-effect {
+  display: none !important;
+}
+
+.gm-style .gm-style-iw-tc,
+.gm-style .gm-style-iw-t::after,
+.gm-style .gm-style-iw-t::before {
+  display: none !important;
+}
+:root {
+  /* отступ снизу под safe-area и нижнюю панель (если она бывает) */
+  --bottom-gap: env(safe-area-inset-bottom, 0px);
+}
+
+/* скроем полосу внутреннего скролла у TabViewport */
+.tab-viewport {
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* IE/Edge legacy */
+}
+.tab-viewport::-webkit-scrollbar { /* Chrome/Safari */
+  width: 0;
+  height: 0;
+}
+
+html, body { scrollbar-gutter: stable both-edges; }
+.tab-viewport { scrollbar-gutter: stable; }
+
+/* Основной скроллер приложения (см. Layout → #app-main):
+   не даём колесу «пробивать» скролл наверх/вниз до window/html,
+   чтобы на десктопе не появлялся второй бегунок при упоре в край. */
+#app-main {
+  overscroll-behavior-y: contain;
+}
