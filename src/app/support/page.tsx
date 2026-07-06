@@ -1,15 +1,117 @@
 "use client";
 
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useOverlayEnvironment } from '@/context/OverlayEnvironmentContext';
+import { getBrowserApiBase } from '@/lib/apiBase';
 import { ChevronLeft, HeartHandshake, CreditCard, Coins, Server, Wrench, Shield, Megaphone, Bug, Users, Mail, Copy } from 'lucide-react';
+
+type SupportLocale = 'ru' | 'en';
+
+const SUPPORT_CARD_NUMBERS: Record<SupportLocale, string> = {
+  ru: '2200 9802 2035 0265',
+  en: '4251 2502 3579 0812',
+};
+
+function normalizeSupportLocale(value?: string | null): SupportLocale | null {
+  const normalized = (value || '').trim().toLowerCase();
+  if (normalized.startsWith('en')) return 'en';
+  if (normalized.startsWith('ru')) return 'ru';
+  return null;
+}
+
+function resolveRenderedSupportLocale(root?: HTMLElement | null): SupportLocale | null {
+  const text = (root?.textContent || '').toLowerCase();
+  if (
+    text.includes('support the project') ||
+    text.includes('financial support') ||
+    text.includes('what your support covers') ||
+    text.includes('transfer fees')
+  ) {
+    return 'en';
+  }
+  if (
+    text.includes('поддержать проект') ||
+    text.includes('финансовая поддержка') ||
+    text.includes('зачем нужна поддержка') ||
+    text.includes('комиссия зависит')
+  ) {
+    return 'ru';
+  }
+  return null;
+}
+
+function resolveSupportLocale(root?: HTMLElement | null): SupportLocale {
+  if (typeof window === 'undefined') return 'ru';
+
+  const url = new URL(window.location.href);
+  const queryLocale =
+    normalizeSupportLocale(url.searchParams.get('lang')) ||
+    normalizeSupportLocale(url.searchParams.get('locale')) ||
+    normalizeSupportLocale(url.searchParams.get('language')) ||
+    normalizeSupportLocale(url.searchParams.get('hl')) ||
+    normalizeSupportLocale(url.searchParams.get('lng'));
+  if (queryLocale) return queryLocale;
+
+  const pathLocale = normalizeSupportLocale(url.pathname.split('/').filter(Boolean)[0]);
+  if (pathLocale) return pathLocale;
+
+  const hostLocale = normalizeSupportLocale(url.hostname.split('.')[0]);
+  if (hostLocale) return hostLocale;
+
+  const localeCookie = document.cookie
+    .split(';')
+    .map((item) => item.trim())
+    .find((item) => /^(NEXT_LOCALE|navumi_locale|django_language)=/i.test(item));
+  if (localeCookie) {
+    const [, rawValue = ''] = localeCookie.split('=');
+    try {
+      const cookieLocale = normalizeSupportLocale(decodeURIComponent(rawValue));
+      if (cookieLocale) return cookieLocale;
+    } catch {
+      // Ignore malformed cookie values.
+    }
+  }
+
+  const renderedLocale = resolveRenderedSupportLocale(root);
+  if (renderedLocale) return renderedLocale;
+
+  const browserLocale = normalizeSupportLocale(navigator.language);
+  if (browserLocale) return browserLocale;
+
+  const htmlLocale = normalizeSupportLocale(document.documentElement.lang);
+  if (htmlLocale) return htmlLocale;
+
+  return 'ru';
+}
+
+async function trackSupportCardCopy(locale: SupportLocale) {
+  try {
+    await fetch(`${getBrowserApiBase()}/api/support/card-copy/`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      credentials: 'omit',
+      keepalive: true,
+      body: JSON.stringify({ language: locale }),
+    });
+  } catch {
+    // Analytics must never block copying the card number.
+  }
+}
 
 export default function SupportPage() {
   const router = useRouter();
   const { authenticated, profile } = useAuth();
   const overlayEnv = useOverlayEnvironment();
+  const pageRef = useRef<HTMLDivElement | null>(null);
+  const [supportLocale, setSupportLocale] = useState<SupportLocale>('ru');
   const fallback = authenticated && profile?.username ? `/${profile.username}` : '/search';
+  const cardNumber = SUPPORT_CARD_NUMBERS[supportLocale];
+  const compactCardNumber = cardNumber.replace(/\s/g, '');
   const handleBack = () => {
     if (overlayEnv.isOverlay) {
       overlayEnv.close();
@@ -22,8 +124,46 @@ export default function SupportPage() {
     }
   };
 
-  const copy = async (text: string) => {
-    try { await navigator.clipboard.writeText(text); alert('Номер карты скопирован'); } catch {}
+  useEffect(() => {
+    const applyLocale = () => {
+      setSupportLocale(resolveSupportLocale(pageRef.current));
+    };
+
+    applyLocale();
+
+    const root = pageRef.current;
+    const observer = typeof MutationObserver !== 'undefined' && root
+      ? new MutationObserver(applyLocale)
+      : null;
+    if (observer && root) {
+      observer.observe(root, { childList: true, characterData: true, subtree: true });
+    }
+
+    const timers = [
+      window.setTimeout(applyLocale, 250),
+      window.setTimeout(applyLocale, 1000),
+    ];
+
+    return () => {
+      observer?.disconnect();
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, []);
+
+  const copy = async () => {
+    void trackSupportCardCopy(supportLocale);
+    const copiedMessage = supportLocale === 'en' ? 'Card number copied' : 'Номер карты скопирован';
+    try {
+      await navigator.clipboard.writeText(compactCardNumber);
+      alert(copiedMessage);
+    } catch {
+      if (typeof window !== 'undefined') {
+        window.prompt(
+          supportLocale === 'en' ? 'Copy the card number:' : 'Скопируйте номер карты:',
+          cardNumber,
+        );
+      }
+    }
   };
 
   function IconShare() {
@@ -36,7 +176,7 @@ export default function SupportPage() {
   }
 
   return (
-    <div className="pb-8" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)' }}>
+    <div ref={pageRef} className="pb-8" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)' }}>
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70 border-b">
         <div className="max-w-4xl mx-auto px-2 sm:px-4 h-12 flex items-center">
           <button onClick={handleBack} aria-label="Назад" className="p-2 rounded-md hover:bg-gray-100 active:bg-gray-200 mr-2">
@@ -88,11 +228,11 @@ export default function SupportPage() {
             Если хотите поддержать развитие сервиса финансово, вы можете сделать перевод на карту:
           </p>
           <div className="flex items-center gap-3 p-3 rounded-xl border bg-gray-50 select-all">
-            <span className="font-mono text-[16px] tracking-wide">2200 9802 2035 0265</span>
+            <span className="font-mono text-[16px] tracking-wide">{cardNumber}</span>
             <button
               type="button"
               className="ml-auto inline-flex items-center gap-1 text-sm px-2.5 py-1.5 rounded-full border hover:bg-gray-100"
-              onClick={() => copy('2200980220350265')}
+              onClick={copy}
               aria-label="Скопировать номер карты"
             >
               <Copy className="w-4 h-4" /> Скопировать
